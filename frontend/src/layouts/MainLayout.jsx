@@ -1,58 +1,50 @@
 import { Link } from "react-router-dom";
-import { LayoutDashboard, Kanban, CheckSquare } from "lucide-react";
+import { LayoutDashboard, Kanban, CheckSquare, Users, LogOut } from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
+import "../App.css";
 
 function MainLayout({ children }) {
+  const { user, role, logout } = useAuth();
+
+  const navItems = [
+    { path: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'sales', 'user'] },
+    { path: '/pipeline', label: 'Pipeline', icon: Kanban, roles: ['admin', 'sales'] },
+    { path: '/leads', label: 'Leads', icon: Users, roles: ['admin', 'sales'] },
+    { path: '/tasks', label: 'Tasks', icon: CheckSquare, roles: ['admin', 'user'] }
+  ];
+
   return (
-    <div style={{ display: "flex", height: "100vh" }}>
+    <div className="layout-container">
+      <div className="sidebar">
+        <div className="sidebar-header">
+          <h2>CRM System</h2>
+          <div className="user-info">
+            <span>{user?.email || role}</span>
+            <button onClick={logout} className="logout-btn" title="Logout">
+              <LogOut size={18} />
+            </button>
+          </div>
+        </div>
 
-      {/* Sidebar */}
-      <div
-        style={{
-          width: "240px",
-          background: "#0B6B6E",
-          color: "white",
-          padding: "25px"
-        }}
-      >
-        <h2 style={{ marginBottom: "30px" }}>CRM System</h2>
-
-        <nav style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-
-          <Link
-            to="/"
-            style={{ color: "white", textDecoration: "none", display: "flex", gap: "10px" }}
-          >
-            <LayoutDashboard size={18} /> Dashboard
-          </Link>
-
-          <Link
-            to="/pipeline"
-            style={{ color: "white", textDecoration: "none", display: "flex", gap: "10px" }}
-          >
-            <Kanban size={18} /> Sales Pipeline
-          </Link>
-
-          <Link
-            to="/tasks"
-            style={{ color: "white", textDecoration: "none", display: "flex", gap: "10px" }}
-          >
-            <CheckSquare size={18} /> Task Reminders
-          </Link>
-
+        <nav className="nav-menu">
+          {navItems.map(item => (
+            item.roles.includes(role) && (
+              <Link
+                key={item.path}
+                to={item.path}
+                className="nav-link"
+              >
+                <item.icon size={18} />
+                {item.label}
+              </Link>
+            )
+          ))}
         </nav>
       </div>
 
-      {/* Main Content */}
-      <div
-        style={{
-          flex: 1,
-          background: "#F2EFE7",
-          padding: "30px"
-        }}
-      >
+      <div className="main-content">
         {children}
       </div>
-
     </div>
   );
 }
