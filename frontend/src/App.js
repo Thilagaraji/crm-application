@@ -4,9 +4,9 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import MainLayout from "./layouts/MainLayout";
 
 import Login from "./pages/Login";
+import TeamDashboard from "./pages/TeamDashboard/TeamDashboard";
 import SalesPipeline from "./pages/SalesPipeline/SalesPipeline";
 import TaskReminders from "./pages/TaskReminders/TaskReminders";
-import TeamDashboard from "./pages/TeamDashboard/TeamDashboard";
 import Leads from "./pages/Leads/Leads";
 
 function App() {
@@ -14,35 +14,28 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <Routes>
+
+          {/* Login */}
           <Route path="/login" element={<Login />} />
-          <Route path="/" element={
-            <ProtectedRoute allowedRoles={['admin', 'sales', 'user']}>
-              <MainLayout>
-                <Routes>
-                  <Route index element={
-                    <ProtectedRoute allowedRoles={['admin', 'sales', 'user']}>
-                      <TeamDashboard />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="pipeline" element={
-                    <ProtectedRoute allowedRoles={['admin', 'sales']}>
-                      <SalesPipeline />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="tasks" element={
-                    <ProtectedRoute allowedRoles={['admin', 'user']}>
-                      <TaskReminders />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="leads" element={
-                    <ProtectedRoute allowedRoles={['admin', 'sales']}>
-                      <Leads />
-                    </ProtectedRoute>
-                  } />
-                </Routes>
-              </MainLayout>
-            </ProtectedRoute>
-          } />
+
+          {/* Protected Layout */}
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute allowedRoles={["admin","sales","user"]}>
+                <MainLayout />
+              </ProtectedRoute>
+            }
+          >
+
+            <Route index element={<TeamDashboard />} />
+
+            <Route path="pipeline" element={<SalesPipeline />} />
+            <Route path="tasks" element={<TaskReminders />} />
+            <Route path="leads" element={<Leads />} />
+
+          </Route>
+
         </Routes>
       </AuthProvider>
     </BrowserRouter>

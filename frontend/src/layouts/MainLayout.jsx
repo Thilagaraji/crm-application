@@ -1,50 +1,63 @@
-import { Link } from "react-router-dom";
-import { LayoutDashboard, Kanban, CheckSquare, Users, LogOut } from "lucide-react";
+import { Outlet, Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import "../App.css";
+function MainLayout() {
 
-function MainLayout({ children }) {
-  const { user, role, logout } = useAuth();
-
-  const navItems = [
-    { path: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'sales', 'user'] },
-    { path: '/pipeline', label: 'Pipeline', icon: Kanban, roles: ['admin', 'sales'] },
-    { path: '/leads', label: 'Leads', icon: Users, roles: ['admin', 'sales'] },
-    { path: '/tasks', label: 'Tasks', icon: CheckSquare, roles: ['admin', 'user'] }
-  ];
+  const { role, logout } = useAuth();
 
   return (
-    <div className="layout-container">
-      <div className="sidebar">
-        <div className="sidebar-header">
-          <h2>CRM System</h2>
-          <div className="user-info">
-            <span>{user?.email || role}</span>
-            <button onClick={logout} className="logout-btn" title="Logout">
-              <LogOut size={18} />
-            </button>
-          </div>
-        </div>
+    <div style={{ display: "flex", height: "100vh" }}>
 
-        <nav className="nav-menu">
-          {navItems.map(item => (
-            item.roles.includes(role) && (
-              <Link
-                key={item.path}
-                to={item.path}
-                className="nav-link"
-              >
-                <item.icon size={18} />
-                {item.label}
+      {/* Sidebar */}
+      <div style={{
+        width: "220px",
+        background: "#0B6B6E",
+        color: "white",
+        padding: "20px"
+      }}>
+
+        <h2>CRM</h2>
+
+        <ul style={{ listStyle: "none", padding: 0 }}>
+
+          <li>
+            <Link to="/" style={{ color: "white" }}>Dashboard</Link>
+          </li>
+
+          {(role === "admin" || role === "sales") && (
+            <li>
+              <Link to="/pipeline" style={{ color: "white" }}>
+                Sales Pipeline
               </Link>
-            )
-          ))}
-        </nav>
+            </li>
+          )}
+
+          {(role === "admin" || role === "sales") && (
+            <li>
+              <Link to="/leads" style={{ color: "white" }}>
+                Leads
+              </Link>
+            </li>
+          )}
+
+          {(role === "admin" || role === "user") && (
+            <li>
+              <Link to="/tasks" style={{ color: "white" }}>
+                Task Reminders
+              </Link>
+            </li>
+          )}
+
+        </ul>
+
+        <button onClick={logout}>Logout</button>
+
       </div>
 
-      <div className="main-content">
-        {children}
+      {/* Page Content */}
+      <div style={{ flex: 1, padding: "20px" }}>
+        <Outlet />
       </div>
+
     </div>
   );
 }
