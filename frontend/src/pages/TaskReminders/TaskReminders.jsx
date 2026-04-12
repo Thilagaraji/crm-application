@@ -8,7 +8,9 @@ function TaskReminders() {
 
   useEffect(() => {
 
-    fetch("/api/tasks")
+    fetch("/api/tasks", {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+    })
       .then(res => res.json())
       .then(data => setTasks(data));
 
@@ -20,7 +22,10 @@ function TaskReminders() {
 
     const res = await fetch("/api/tasks", {
       method:"POST",
-      headers:{ "Content-Type":"application/json" },
+      headers:{
+        "Content-Type":"application/json",
+        Authorization: `Bearer ${localStorage.getItem('token')}`
+      },
       body: JSON.stringify(newTask)
     });
 

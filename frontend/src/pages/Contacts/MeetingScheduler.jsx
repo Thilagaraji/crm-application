@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./Style.css";  
 function MeetingScheduler() {
   const [meetings, setMeetings] = useState([]);
@@ -6,13 +6,35 @@ function MeetingScheduler() {
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
 
-  const addMeeting = () => {
+  useEffect(() => {
+    fetch("/api/meetings", {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+    })
+      .then(res => res.json())
+      .then(data => setMeetings(data))
+      .catch(err => console.error(err));
+  }, []);
+
+  const addMeeting = async () => {
     if (!title || !date || !time) return;
 
-    setMeetings([...meetings, { title, date, time }]);
-    setTitle("");
-    setDate("");
-    setTime("");
+    const newMeeting = { title, date, time };
+    const res = await fetch("/api/meetings", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify(newMeeting)
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      setMeetings([...meetings, data]);
+      setTitle("");
+      setDate("");
+      setTime("");
+    }
   };
 
   return (

@@ -10,7 +10,9 @@ function SalesPipeline() {
   // Fetch deals from backend
   useEffect(() => {
 
-    fetch("/api/deals")
+    fetch("/api/deals", {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+    })
       .then(res => res.json())
       .then(data => setDeals(data))
       .catch(err => console.log(err));
@@ -28,7 +30,10 @@ function SalesPipeline() {
 
     const res = await fetch("/api/deals", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem('token')}`
+      },
       body: JSON.stringify(newDeal)
     });
 

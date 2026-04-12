@@ -12,7 +12,9 @@ function TeamDashboard() {
   const { role } = useAuth();
 
   useEffect(() => {
-    fetch("/api/dashboard")
+    fetch("/api/dashboard", {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+    })
       .then(res => res.json())
       .then(data => setStats(data))
       .catch(() => {}); // Ignore errors pre-auth

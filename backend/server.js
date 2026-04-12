@@ -1,25 +1,52 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 
+// Models
+const User = require('./models/User');
+const Lead = require('./models/Lead');
+const Deal = require('./models/Deal');
+const Task = require('./models/Task');
+const Contact = require('./models/Contact');
+const Meeting = require('./models/Meeting');
+const SupportTicket = require('./models/SupportTicket');
+
 const app = express();
-const PORT = 5000;
-const JWT_SECRET = 'crm-secret-key-123'; // In prod, use env var
+const PORT = process.env.PORT || 5000;
+const JWT_SECRET = process.env.JWT_SECRET || 'crm-secret-key-123';
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/crm';
 
 app.use(cors());
 app.use(express.json());
 
-// Mock DB
-let leads = [
-  { _id: 1, name: 'John Doe', email: 'john@example.com', phone: '123-456', source: 'Website', status: 'New', createdAt: new Date() },
-  { _id: 2, name: 'Jane Smith', email: 'jane@example.com', phone: '789-012', source: 'Referral', status: 'Contacted', createdAt: new Date() }
-];
-let users = [
-  { id: 1, email: 'admin@CRM.com', password: '$2a$10$mockhashadmin', role: 'admin' }, // bcrypt hash for 'admin123'
-  { id: 2, email: 'sales@CRM.com', password: '$2a$10$mockhashsales', role: 'sales' },
-  { id: 3, email: 'user@CRM.com', password: '$2a$10$mockhashuser', role: 'user' }
-];
+// MongoDB Connection
+mongoose.connect(MONGO_URI)
+  .then(async () => {
+    console.log('Connected to MongoDB');
+    await seedUsers();
+  })
+  .catch(err => console.error('MongoDB connection error:', err));
+
+// Seed Demo Users
+async function seedUsers() {
+  try {
+    const usersCount = await User.countDocuments();
+    if (usersCount === 0) {
+      const defaultUsers = [
+        { email: 'admin@CRM.com', password: await bcrypt.hash('admin123', 10), role: 'admin' },
+        { email: 'sales@CRM.com', password: await bcrypt.hash('sales123', 10), role: 'sales' },
+        { email: 'user@CRM.com', password: await bcrypt.hash('user123', 10), role: 'user' }
+      ];
+      await User.insertMany(defaultUsers);
+      console.log('Seeded demo users');
+    }
+  } catch (error) {
+    console.error('Error seeding users:', error);
+  }
+}
 
 // Middleware: Verify JWT & Role
 const authenticateToken = (req, res, next) => {
@@ -39,53 +66,162 @@ const checkRole = (roles) => (req, res, next) => {
   next();
 };
 
-// Existing APIs (preserve for future)
-app.get('/api/dashboard', (req, res) => {
-  res.json({ deals: 15, revenue: 125000, leads: 8 });
+// --- APIs ---
+
+// Auth API
+app.post('/api/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) return res.status(401).json({ error: 'Invalid credentials' });
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) return res.status(401).json({ error: 'Invalid credentials' });
+
+    const token = jwt.sign({ email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '24h' });
+    res.json({ token, user: { email: user.email }, role: user.role });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
 });
 
-app.get('/api/deals', (req, res) => {
-  res.json([]);
-});
-app.post('/api/deals', (req, res) => {
-  res.json({ ...req.body, _id: Date.now() });
+app.get('/api/dashboard', authenticateToken, async (req, res) => {
+  try {
+    const deals = await Deal.countDocuments();
+    // Calculate total revenue from deals
+    const allDeals = await Deal.find();
+    const revenue = allDeals.reduce((sum, deal) => sum + (deal.value || 0), 0);
+    const leads = await Lead.countDocuments();
+    res.json({ deals, revenue, leads });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
 });
 
-app.get('/api/tasks', (req, res) => {
-  res.json([]);
-});
-app.post('/api/tasks', (req, res) => {
-  res.json({ ...req.body, _id: Date.now() });
+app.get('/api/deals', authenticateToken, async (req, res) => {
+  try {
+    const deals = await Deal.find();
+    res.json(deals);
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
 });
 
-// New Auth API
-app.post('/api/login', (req, res) => {
-  const { email, password } = req.body;
-  const user = users.find(u => u.email === email /* && bcrypt.compareSync(password, u.password) */);
-  if (!user) return res.status(401).json({ error: 'Invalid credentials' });
+app.post('/api/deals', authenticateToken, async (req, res) => {
+  try {
+    const newDeal = new Deal(req.body);
+    await newDeal.save();
+    res.json(newDeal);
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
 
-  // Mock token (no real bcrypt for demo)
-  const token = jwt.sign({ email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '24h' });
-  res.json({ token, user: { email: user.email }, role: user.role });
+app.get('/api/tasks', authenticateToken, async (req, res) => {
+  try {
+    const tasks = await Task.find();
+    res.json(tasks);
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.post('/api/tasks', authenticateToken, async (req, res) => {
+  try {
+    const newTask = new Task(req.body);
+    await newTask.save();
+    res.json(newTask);
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Leads APIs
+app.get('/api/leads', authenticateToken, async (req, res) => {
+  try {
+    // Sort by newest
+    const leads = await Lead.find().sort({ createdAt: -1 });
+    res.json(leads);
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.post('/api/leads', authenticateToken, checkRole(['admin', 'sales']), async (req, res) => {
+  try {
+    const newLead = new Lead(req.body);
+    await newLead.save();
+    res.json(newLead);
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Contacts APIs
+app.get('/api/contacts', authenticateToken, async (req, res) => {
+  try {
+    const contacts = await Contact.find();
+    res.json(contacts);
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.post('/api/contacts', authenticateToken, async (req, res) => {
+  try {
+    const newContact = new Contact(req.body);
+    await newContact.save();
+    res.json(newContact);
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Meetings APIs
+app.get('/api/meetings', authenticateToken, async (req, res) => {
+  try {
+    const meetings = await Meeting.find();
+    res.json(meetings);
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.post('/api/meetings', authenticateToken, async (req, res) => {
+  try {
+    const newMeeting = new Meeting(req.body);
+    await newMeeting.save();
+    res.json(newMeeting);
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Support Tickets APIs
+app.get('/api/support', authenticateToken, async (req, res) => {
+  try {
+    const tickets = await SupportTicket.find();
+    res.json(tickets);
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+app.post('/api/support', authenticateToken, async (req, res) => {
+  try {
+    const newTicket = new SupportTicket(req.body);
+    await newTicket.save();
+    res.json(newTicket);
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
+  }
 });
 
 // Health check for root
 app.get('/', (req, res) => {
-  res.json({ message: 'CRM Backend API v1.0 - Ready!', endpoints: ['/api/login', '/api/dashboard', '/api/leads', '/api/deals', '/api/tasks'] });
-});
-
-// New Leads APIs (RBAC protected)
-app.get('/api/leads', authenticateToken, (req, res) => {
-  res.json(leads);
-});
-
-app.post('/api/leads', authenticateToken, checkRole(['admin', 'sales']), (req, res) => {
-  const newLead = { _id: Date.now(), ...req.body, createdAt: new Date() };
-  leads.push(newLead);
-  res.json(newLead);
+  res.json({ message: 'CRM Backend API v1.1 DB - Ready!' });
 });
 
 app.listen(PORT, () => {
   console.log(`CRM Backend running on http://localhost:${PORT}`);
 });
-

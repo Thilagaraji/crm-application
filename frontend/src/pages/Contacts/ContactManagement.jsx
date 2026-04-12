@@ -1,16 +1,38 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./Style.css";  
 function ContactManagement() {
   const [contacts, setContacts] = useState([]);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
 
-  const addContact = () => {
+  useEffect(() => {
+    fetch("/api/contacts", {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+    })
+      .then(res => res.json())
+      .then(data => setContacts(data))
+      .catch(err => console.error(err));
+  }, []);
+
+  const addContact = async () => {
     if (!name || !phone) return;
 
-    setContacts([...contacts, { name, phone }]);
-    setName("");
-    setPhone("");
+    const newContact = { name, phone };
+    const res = await fetch("/api/contacts", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify(newContact)
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      setContacts([...contacts, data]);
+      setName("");
+      setPhone("");
+    }
   };
 
   return (

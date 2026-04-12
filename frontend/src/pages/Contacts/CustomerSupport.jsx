@@ -1,14 +1,36 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./Style.css";  
 function CustomerSupport() {
   const [tickets, setTickets] = useState([]);
   const [issue, setIssue] = useState("");
 
-  const addTicket = () => {
+  useEffect(() => {
+    fetch("/api/support", {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+    })
+      .then(res => res.json())
+      .then(data => setTickets(data))
+      .catch(err => console.error(err));
+  }, []);
+
+  const addTicket = async () => {
     if (!issue) return;
 
-    setTickets([...tickets, { issue, status: "Open" }]);
-    setIssue("");
+    const newTicket = { issue, status: "Open" };
+    const res = await fetch("/api/support", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify(newTicket)
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      setTickets([...tickets, data]);
+      setIssue("");
+    }
   };
 
   return (
