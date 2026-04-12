@@ -46,6 +46,23 @@ function MainLayout() {
               </Link>
             </li>
           )}
+          <li>
+  <Link to="/contacts" style={{ color: "white" }}>
+    Contact Management
+  </Link>
+</li>
+
+<li>
+  <Link to="/meetings" style={{ color: "white" }}>
+    Meeting Scheduler
+  </Link>
+</li>
+
+<li>
+  <Link to="/support" style={{ color: "white" }}>
+    Customer Support
+  </Link>
+</li>
 
         </ul>
 
