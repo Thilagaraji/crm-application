@@ -20,12 +20,12 @@ function MainLayout() {
         <ul style={{ listStyle: "none", padding: 0 }}>
 
           <li>
-            <Link to="/" style={{ color: "white" }}>Dashboard</Link>
+            <Link to={`/${role}`} style={{ color: "blue" }}>Dashboard</Link>
           </li>
 
           {(role === "admin" || role === "sales") && (
             <li>
-              <Link to="/pipeline" style={{ color: "white" }}>
+              <Link to={`/${role}/pipeline`} style={{ color: "blue" }}>
                 Sales Pipeline
               </Link>
             </li>
@@ -33,7 +33,7 @@ function MainLayout() {
 
           {(role === "admin" || role === "sales") && (
             <li>
-              <Link to="/leads" style={{ color: "white" }}>
+              <Link to={`/${role}/leads`} style={{ color: "blue" }}>
                 Leads
               </Link>
             </li>
@@ -41,28 +41,28 @@ function MainLayout() {
 
           {(role === "admin" || role === "user") && (
             <li>
-              <Link to="/tasks" style={{ color: "white" }}>
+              <Link to={`/${role}/tasks`} style={{ color: "blue" }}>
                 Task Reminders
               </Link>
             </li>
           )}
           <li>
-  <Link to="/contacts" style={{ color: "white" }}>
-    Contact Management
-  </Link>
-</li>
+            <Link to={`/${role}/contacts`} style={{ color: "blue" }}>
+              Contact Management
+            </Link>
+          </li>
 
-<li>
-  <Link to="/meetings" style={{ color: "white" }}>
-    Meeting Scheduler
-  </Link>
-</li>
+          <li>
+            <Link to={`/${role}/meetings`} style={{ color: "blue" }}>
+              Meeting Scheduler
+            </Link>
+          </li>
 
-<li>
-  <Link to="/support" style={{ color: "white" }}>
-    Customer Support
-  </Link>
-</li>
+          <li>
+            <Link to={`/${role}/support`} style={{ color: "blue" }}>
+              Customer Support
+            </Link>
+          </li>
 
         </ul>
 

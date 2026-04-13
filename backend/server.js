@@ -24,29 +24,11 @@ app.use(express.json());
 
 // MongoDB Connection
 mongoose.connect(MONGO_URI)
-  .then(async () => {
+  .then(() => {
     console.log('Connected to MongoDB');
-    await seedUsers();
   })
   .catch(err => console.error('MongoDB connection error:', err));
 
-// Seed Demo Users
-async function seedUsers() {
-  try {
-    const usersCount = await User.countDocuments();
-    if (usersCount === 0) {
-      const defaultUsers = [
-        { email: 'admin@CRM.com', password: await bcrypt.hash('admin123', 10), role: 'admin' },
-        { email: 'sales@CRM.com', password: await bcrypt.hash('sales123', 10), role: 'sales' },
-        { email: 'user@CRM.com', password: await bcrypt.hash('user123', 10), role: 'user' }
-      ];
-      await User.insertMany(defaultUsers);
-      console.log('Seeded demo users');
-    }
-  } catch (error) {
-    console.error('Error seeding users:', error);
-  }
-}
 
 // Middleware: Verify JWT & Role
 const authenticateToken = (req, res, next) => {
@@ -69,14 +51,43 @@ const checkRole = (roles) => (req, res, next) => {
 // --- APIs ---
 
 // Auth API
+app.post('/api/register', async (req, res) => {
+  try {
+    const { email, password, role } = req.body;
+    
+    // Check if user already exists
+    const existingUser = await User.findOne({ email: new RegExp('^' + email + '$', "i") });
+    if (existingUser) return res.status(400).json({ error: 'User with this email already exists.' });
+
+    // Ensure valid role
+    if (!['admin', 'sales', 'user'].includes(role)) {
+      return res.status(400).json({ error: 'Invalid role.' });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const newUser = new User({ email, password: hashedPassword, role });
+    await newUser.save();
+
+    res.status(201).json({ message: 'User registered successfully!' });
+  } catch (error) {
+    res.status(500).json({ error: 'Server error during registration' });
+  }
+});
+
 app.post('/api/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
-    const user = await User.findOne({ email });
-    if (!user) return res.status(401).json({ error: 'Invalid credentials' });
+    const { email, password, role } = req.body;
+    
+    // Use case-insensitive search for email
+    const user = await User.findOne({ email: new RegExp('^' + email + '$', "i") });
+    if (!user) return res.status(401).json({ error: 'User not found. Please check your email.' });
+
+    if (role && user.role !== role) {
+      return res.status(401).json({ error: `Invalid role selected. This account is registered as '${user.role}'.` });
+    }
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(401).json({ error: 'Invalid credentials' });
+    if (!isMatch) return res.status(401).json({ error: 'Incorrect password.' });
 
     const token = jwt.sign({ email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '24h' });
     res.json({ token, user: { email: user.email }, role: user.role });
